@@ -1,0 +1,1 @@
+https://github.com/keboola/component-azure-table-storage/blob/master/LICENSE.md
