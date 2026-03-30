@@ -5,6 +5,7 @@ readme = "README.md"
 requires-python = "~=3.13"
 dependencies = [
     "azure-data-tables>=12.5.0",
+    "flake8>=7.3.0",
     "keboola-component>=1.9.0",
     "pydantic>=2.11.7",
 ]
