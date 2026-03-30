@@ -1,103 +1,83 @@
-"""
-Template Component main class.
-
-"""
-
 import csv
 import logging
-from datetime import datetime
+import sys
+from typing import Generator
 
-from keboola.component.base import ComponentBase
+from keboola.component.base import ComponentBase, sync_action
 from keboola.component.exceptions import UserException
 
+from azure_client import AzureTableStorageClient
 from configuration import Configuration
 
 
 class Component(ComponentBase):
-    """
-    Extends base class for general Python components. Initializes the CommonInterface
-    and performs configuration validation.
-
-    For easier debugging the data folder is picked up by default from `../data` path,
-    relative to working directory.
-
-    If `debug` parameter is present in the `config.json`, the default logger is set to verbose DEBUG mode.
-    """
-
     def __init__(self):
         super().__init__()
+        self.params = Configuration(**self.configuration.parameters)
+        self.client = AzureTableStorageClient(self.params.connection_string)
 
     def run(self):
-        """
-        Main execution code
-        """
+        input_table = self._get_single_input_table()
+        self._validate_key_columns(input_table.columns, self.params)
+        entities = self._build_entities(input_table.full_path, self.params)
+        self._write_entities_to_azure(self.client, self.params, entities)
 
-        # ####### EXAMPLE TO REMOVE
-        # check for missing configuration parameters
-        params = Configuration(**self.configuration.parameters)
+    @sync_action("testConnection")
+    def test_connection(self):
+        self.client.test_connection()
+        return {"status": "success", "message": "Connection successful."}
 
-        # Access parameters in configuration
-        if params.print_hello:
-            logging.info("Hello World")
+    def _get_single_input_table(self):
+        tables = self.get_input_tables_definitions()
+        if not tables:
+            raise UserException("No input table found. Please map an input table in the component configuration.")
+        if len(tables) > 1:
+            logging.warning("Multiple input tables found; only the first one will be processed.")
+        table = tables[0]
+        logging.info("Processing input table: %s", table.name)
+        return table
 
-        # get input table definitions
-        input_tables = self.get_input_tables_definitions()
-        for table in input_tables:
-            logging.info(f"Received input table: {table.name} with path: {table.full_path}")
+    @staticmethod
+    def _validate_key_columns(columns: list[str], params: Configuration) -> None:
+        if params.partition_key_column not in columns:
+            raise UserException(
+                f"Partition key column '{params.partition_key_column}' not found in input table. "
+                f"Available columns: {columns}"
+            )
+        if params.row_key_column not in columns:
+            raise UserException(
+                f"Row key column '{params.row_key_column}' not found in input table. Available columns: {columns}"
+            )
 
-        if len(input_tables) == 0:
-            raise UserException("No input tables found")
+    @staticmethod
+    def _build_entities(csv_path: str, params: Configuration) -> Generator[dict, None, None]:
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                entity = dict(row)
+                entity["PartitionKey"] = entity.pop(params.partition_key_column)
+                entity["RowKey"] = entity.pop(params.row_key_column)
+                yield entity
 
-        # get last state data/in/state.json from previous run
-        previous_state = self.get_state_file()
-        logging.info(previous_state.get("some_parameter"))
-
-        # Create output table (Table definition - just metadata)
-        table = self.create_out_table_definition("output.csv", incremental=True, primary_key=["timestamp"])
-
-        # get file path of the table (data/out/tables/Features.csv)
-        out_table_path = table.full_path
-        logging.info(out_table_path)
-
-        # Add timestamp column and save into out_table_path
-        input_table = input_tables[0]
-        with (
-            open(input_table.full_path, "r") as inp_file,
-            open(table.full_path, mode="wt", encoding="utf-8", newline="") as out_file,
-        ):
-            reader = csv.DictReader(inp_file)
-
-            columns = list(reader.fieldnames)
-            # append timestamp
-            columns.append("timestamp")
-
-            # write result with column added
-            writer = csv.DictWriter(out_file, fieldnames=columns)
-            writer.writeheader()
-            for in_row in reader:
-                in_row["timestamp"] = datetime.now().isoformat()
-                writer.writerow(in_row)
-
-        # Save table manifest (output.csv.manifest) from the Table definition
-        self.write_manifest(table)
-
-        # Write new state - will be available next run
-        self.write_state_file({"some_state_parameter": "value"})
-
-        # ####### EXAMPLE TO REMOVE END
+    @staticmethod
+    def _write_entities_to_azure(
+        client: AzureTableStorageClient,
+        params: Configuration,
+        entities: Generator[dict, None, None],
+    ) -> None:
+        client.ensure_table_exists(params.azure_table_name)
+        mode = "merge" if params.write_mode == "upsert_merge" else "replace"
+        total = client.upsert_entities(params.azure_table_name, entities, mode)
+        logging.info("Written %d entities to Azure table '%s'", total, params.azure_table_name)
 
 
-"""
-        Main entrypoint
-"""
 if __name__ == "__main__":
     try:
         comp = Component()
-        # this triggers the run method by default and is controlled by the configuration.action parameter
         comp.execute_action()
     except UserException as exc:
         logging.exception(exc)
-        exit(1)
+        sys.exit(1)
     except Exception as exc:
         logging.exception(exc)
-        exit(2)
+        sys.exit(2)
