@@ -9,20 +9,39 @@
   "properties": {
     "azure_table_name": {
       "type": "string",
+      "enum": [],
+      "default": "",
       "title": "Azure Table Name",
       "description": "Name of the target table in Azure Table Storage.",
+      "format": "select",
+      "options": {
+        "tags": true,
+        "creatable": true,
+        "async": {
+          "label": "Load tables",
+          "action": "list_tables"
+        }
+      },
       "propertyOrder": 1
     },
     "partition_key_column": {
       "type": "string",
       "title": "Partition Key Column",
       "description": "Input table column to use as the entity PartitionKey.",
+      "watch": {
+        "columns": "_metadata_.table.columns"
+      },
+      "enumSource": "columns",
       "propertyOrder": 2
     },
     "row_key_column": {
       "type": "string",
       "title": "Row Key Column",
       "description": "Input table column to use as the entity RowKey.",
+      "watch": {
+        "columns": "_metadata_.table.columns"
+      },
+      "enumSource": "columns",
       "propertyOrder": 3
     },
     "write_mode": {

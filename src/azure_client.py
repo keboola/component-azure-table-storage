@@ -20,6 +20,13 @@ class AzureTableStorageClient:
         except HttpResponseError as e:
             raise UserException(f"Connection failed: {e.message}") from e
 
+    def list_tables(self) -> list[str]:
+        """Return names of all tables in the storage account."""
+        try:
+            return [t.name for t in self._service_client.list_tables()]
+        except HttpResponseError as e:
+            raise UserException(f"Failed to list tables: {e.message}") from e
+
     def ensure_table_exists(self, table_name: str) -> None:
         try:
             self._service_client.create_table(table_name)

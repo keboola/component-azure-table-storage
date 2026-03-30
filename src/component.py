@@ -5,6 +5,7 @@ from typing import Generator
 
 from keboola.component.base import ComponentBase, sync_action
 from keboola.component.exceptions import UserException
+from keboola.component.sync_actions import SelectElement
 
 from azure_client import AzureTableStorageClient
 from configuration import Configuration
@@ -21,11 +22,6 @@ class Component(ComponentBase):
         self._validate_key_columns(input_table.columns, self.params)
         entities = self._build_entities(input_table.full_path, self.params)
         self._write_entities_to_azure(self.client, self.params, entities)
-
-    @sync_action("testConnection")
-    def test_connection(self):
-        self.client.test_connection()
-        return {"status": "success", "message": "Connection successful."}
 
     def _get_single_input_table(self):
         tables = self.get_input_tables_definitions()
@@ -69,6 +65,16 @@ class Component(ComponentBase):
         mode = "merge" if params.write_mode == "upsert_merge" else "replace"
         total = client.upsert_entities(params.azure_table_name, entities, mode)
         logging.info("Written %d entities to Azure table '%s'", total, params.azure_table_name)
+
+    @sync_action("testConnection")
+    def test_connection(self):
+        self.client.test_connection()
+        return {"status": "success", "message": "Connection successful."}
+
+    @sync_action("list_tables")
+    def list_tables(self):
+        tables = self.client.list_tables()
+        return [SelectElement(t) for t in tables]
 
 
 if __name__ == "__main__":
