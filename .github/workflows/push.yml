@@ -70,6 +70,8 @@ jobs:
             TAG="$REF-${{ github.run_number }}"
           fi
           IS_SEMANTIC_TAG=$(echo "$REF" | grep -q '^[0-9]\+\.[0-9]\+\.[0-9]\+$' && echo true || echo false)
+          echo "is_semantic_tag=$IS_SEMANTIC_TAG" | tee -a $GITHUB_OUTPUT
+          echo "app_image_tag=$TAG" | tee -a $GITHUB_OUTPUT
 
       - name: Deploy-Ready check
         id: deploy_ready
@@ -96,11 +98,27 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
+      - name: Build test image (runs ruff at build time)
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
+          target: test
+          tags: ${{ env.KBC_DEVELOPERPORTAL_APP }}:test
+          outputs: type=docker,dest=/tmp/${{ env.KBC_DEVELOPERPORTAL_APP }}-test.tar
+
+      - name: Upload test image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.KBC_DEVELOPERPORTAL_APP }}-test
+          path: /tmp/${{ env.KBC_DEVELOPERPORTAL_APP }}-test.tar
+
+      - name: Build production image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
           tags: ${{ env.KBC_DEVELOPERPORTAL_APP }}:latest
           outputs: type=docker,dest=/tmp/${{ env.KBC_DEVELOPERPORTAL_APP }}.tar
 
@@ -117,21 +135,16 @@ jobs:
       - push_event_info
       - build
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Download artifact
+      - name: Download test image artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.KBC_DEVELOPERPORTAL_APP }}
+          name: ${{ env.KBC_DEVELOPERPORTAL_APP }}-test
           path: /tmp
 
-      - name: Load Image & Run Tests
+      - name: Load image & run pytest
         run: |
-          docker load --input /tmp/${{ env.KBC_DEVELOPERPORTAL_APP }}.tar
-          docker image ls -a
-          echo "Running unit-tests..."
-          docker run ${{ env.KBC_DEVELOPERPORTAL_APP }}:latest python -m unittest discover
+          docker load --input /tmp/${{ env.KBC_DEVELOPERPORTAL_APP }}-test.tar
+          docker run ${{ env.KBC_DEVELOPERPORTAL_APP }}:test
 
   tests-kbc:
     name: Run KBC Tests
