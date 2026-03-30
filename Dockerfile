@@ -17,5 +17,6 @@ COPY src/ src
 COPY tests/ tests
 COPY scripts/ scripts
 COPY deploy.sh .
+COPY flake8.cfg .
 
 CMD ["python", "-u", "src/component.py"]
