@@ -3,8 +3,6 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-import mock
-
 from component import Component
 from configuration import Configuration
 
@@ -73,7 +71,7 @@ class TestBuildEntities(unittest.TestCase):
 
 
 class TestComponentRun(unittest.TestCase):
-    @mock.patch.dict(os.environ, {"KBC_DATADIR": "./non-existing-dir"})
+    @patch.dict(os.environ, {"KBC_DATADIR": "./non-existing-dir"})
     def test_run_no_cfg_fails(self):
         with self.assertRaises(ValueError):
             comp = Component()
