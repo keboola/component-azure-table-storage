@@ -24,4 +24,7 @@ class Configuration(BaseModel):
 
         if self.debug:
             logging.getLogger().setLevel(logging.DEBUG)
+            # Azure SDK logs full HTTP request/response at DEBUG, including the
+            # Authorization header derived from the connection string.
+            logging.getLogger("azure").setLevel(logging.WARNING)
             logging.debug("Component will run in Debug mode")
