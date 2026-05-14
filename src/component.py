@@ -10,6 +10,10 @@ from keboola.component.sync_actions import SelectElement
 from azure_client import AzureTableStorageClient
 from configuration import Configuration
 
+# Azure SDK HTTP logs contain dynamic UUIDs and multipart boundaries; suppressing them
+# keeps logs clean and avoids leaking auth-adjacent headers.
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+
 
 class Component(ComponentBase):
     def __init__(self):

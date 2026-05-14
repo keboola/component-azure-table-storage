@@ -1,0 +1,36 @@
+[
+  {
+    "name": "01_list_tables",
+    "description": "List tables sync action — returns available Azure tables for the UI dropdown",
+    "config": {
+      "action": "list_tables",
+      "parameters": {
+        "#connection_string": "DefaultEndpointsProtocol=https;AccountName=cf0azure0table0storage;AccountKey=RkFLRV9LRVlfUExBQ0VIT0xERVI=;EndpointSuffix=core.windows.net",
+        "azure_table_name": "testb",
+        "partition_key_column": "region",
+        "row_key_column": "order_id"
+      }
+    }
+  },
+  {
+    "name": "02_write_orders",
+    "description": "Write orders CSV to Azure Table Storage via upsert_merge",
+    "config": {
+      "action": "run",
+      "parameters": {
+        "#connection_string": "DefaultEndpointsProtocol=https;AccountName=cf0azure0table0storage;AccountKey=RkFLRV9LRVlfUExBQ0VIT0xERVI=;EndpointSuffix=core.windows.net",
+        "azure_table_name": "testb",
+        "partition_key_column": "region",
+        "row_key_column": "order_id",
+        "write_mode": "upsert_merge"
+      },
+      "storage": {
+        "input": {
+          "tables": [
+            {"destination": "orders.csv"}
+          ]
+        }
+      }
+    }
+  }
+]

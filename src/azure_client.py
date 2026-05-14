@@ -33,6 +33,11 @@ class AzureTableStorageClient:
             logging.info("Created Azure table '%s'", table_name)
         except ResourceExistsError:
             logging.debug("Azure table '%s' already exists", table_name)
+        except HttpResponseError as e:
+            if e.status_code == 409:
+                logging.debug("Azure table '%s' already exists", table_name)
+            else:
+                raise UserException(f"Failed to create table '{table_name}': {e.message or str(e)}") from e
 
     def upsert_entities(
         self,

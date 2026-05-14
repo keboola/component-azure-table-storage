@@ -1,0 +1,3 @@
+{
+  "columns": ["region", "order_id", "product", "amount", "order_date"]
+}

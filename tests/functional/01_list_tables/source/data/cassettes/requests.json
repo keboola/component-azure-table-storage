@@ -1,0 +1,7 @@
+{
+  "_metadata": {"freeze_time": "2026-05-14T10:48:03", "keboola_vcr_version": "0.5.0", "recorded_at": "2026-05-14T08:48:05.039187+00:00"},
+  "interactions": [
+    {"request": {"body": null, "headers": {"Accept": ["application/json;odata=minimalmetadata"]}, "method": "GET", "uri": "https://cf0azure0table0storage.table.core.windows.net/Tables"}, "response": {"body": {"string": "{\"odata.metadata\":\"https://cf0azure0table0storage.table.core.windows.net/$metadata#Tables\",\"value\":[{\"TableName\":\"test\"},{\"TableName\":\"test4central\"},{\"TableName\":\"testb\"}]}"}, "headers": {"Content-Type": ["application/json;odata=minimalmetadata;streaming=true;charset=utf-8"]}, "status": {"code": 200, "message": "OK"}}}
+  ],
+  "version": 1
+}
