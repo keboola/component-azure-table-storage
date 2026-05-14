@@ -24,11 +24,24 @@ class TestConfiguration(unittest.TestCase):
         self.assertEqual(config.row_key_column, "order_id")
         self.assertEqual(config.write_mode, "upsert_merge")
 
-    def test_missing_required_fields_raises_user_exception(self):
+    def test_connection_only_config_parses(self):
+        # Sync actions on the root config form (e.g. testConnection) only send
+        # the connection string; Configuration must accept that without raising.
+        config = Configuration(**{"#connection_string": "x"})
+        self.assertEqual(config.connection_string, "x")
+        self.assertIsNone(config.azure_table_name)
+        self.assertIsNone(config.partition_key_column)
+        self.assertIsNone(config.row_key_column)
+
+    def test_run_requires_row_params(self):
         from keboola.component.exceptions import UserException
 
-        with self.assertRaises(UserException):
-            Configuration(**{"#connection_string": "x"})
+        config = Configuration(**{"#connection_string": "x"})
+        with self.assertRaises(UserException) as ctx:
+            Component._require_row_params(config)
+        self.assertIn("azure_table_name", str(ctx.exception))
+        self.assertIn("partition_key_column", str(ctx.exception))
+        self.assertIn("row_key_column", str(ctx.exception))
 
     def test_invalid_write_mode_raises_user_exception(self):
         from keboola.component.exceptions import UserException
@@ -68,6 +81,14 @@ class TestBuildEntities(unittest.TestCase):
         params = self._make_params(row_key_column="nonexistent")
         with self.assertRaises(UserException):
             Component._validate_key_columns(["region", "order_id", "amount"], params)
+
+    def test_same_partition_and_row_key_column_raises(self):
+        from keboola.component.exceptions import UserException
+
+        params = self._make_params(partition_key_column="region", row_key_column="region")
+        with self.assertRaises(UserException) as ctx:
+            Component._validate_key_columns(["region", "order_id", "amount"], params)
+        self.assertIn("must be different", str(ctx.exception))
 
 
 class TestComponentRun(unittest.TestCase):

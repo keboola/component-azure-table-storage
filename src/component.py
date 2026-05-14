@@ -22,10 +22,23 @@ class Component(ComponentBase):
         self.client = AzureTableStorageClient(self.params.connection_string)
 
     def run(self):
+        table_name = self._require_row_params(self.params)
         input_table = self._get_single_input_table()
         self._validate_key_columns(input_table.columns, self.params)
         entities = self._build_entities(input_table.full_path, self.params)
-        self._write_entities_to_azure(self.client, self.params, entities)
+        self._write_entities_to_azure(self.client, table_name, self.params.write_mode, entities)
+
+    @staticmethod
+    def _require_row_params(params: Configuration) -> str:
+        missing = [
+            name
+            for name in ("azure_table_name", "partition_key_column", "row_key_column")
+            if getattr(params, name) is None
+        ]
+        if missing:
+            raise UserException(f"Missing required configuration fields: {', '.join(missing)}")
+        assert params.azure_table_name is not None
+        return params.azure_table_name
 
     def _get_single_input_table(self):
         tables = self.get_input_tables_definitions()
@@ -39,6 +52,11 @@ class Component(ComponentBase):
 
     @staticmethod
     def _validate_key_columns(columns: list[str], params: Configuration) -> None:
+        if params.partition_key_column == params.row_key_column:
+            raise UserException(
+                f"Partition key column and row key column must be different, "
+                f"but both are set to '{params.partition_key_column}'."
+            )
         if params.partition_key_column not in columns:
             raise UserException(
                 f"Partition key column '{params.partition_key_column}' not found in input table. "
@@ -62,13 +80,14 @@ class Component(ComponentBase):
     @staticmethod
     def _write_entities_to_azure(
         client: AzureTableStorageClient,
-        params: Configuration,
+        table_name: str,
+        write_mode: str,
         entities: Generator[dict, None, None],
     ) -> None:
-        client.ensure_table_exists(params.azure_table_name)
-        mode = "merge" if params.write_mode == "upsert_merge" else "replace"
-        total = client.upsert_entities(params.azure_table_name, entities, mode)
-        logging.info("Written %d entities to Azure table '%s'", total, params.azure_table_name)
+        client.ensure_table_exists(table_name)
+        mode = "merge" if write_mode == "upsert_merge" else "replace"
+        total = client.upsert_entities(table_name, entities, mode)
+        logging.info("Written %d entities to Azure table '%s'", total, table_name)
 
     @sync_action("testConnection")
     def test_connection(self):

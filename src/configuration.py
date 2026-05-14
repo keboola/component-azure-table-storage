@@ -7,9 +7,9 @@ from pydantic import BaseModel, Field, ValidationError
 
 class Configuration(BaseModel):
     connection_string: str = Field(alias="#connection_string")
-    azure_table_name: str
-    partition_key_column: str
-    row_key_column: str
+    azure_table_name: str | None = None
+    partition_key_column: str | None = None
+    row_key_column: str | None = None
     write_mode: Literal["upsert_merge", "upsert_replace"] = "upsert_merge"
     debug: bool = False
 
