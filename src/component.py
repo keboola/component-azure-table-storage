@@ -24,7 +24,7 @@ class Component(ComponentBase):
     def run(self):
         table_name = self._require_row_params(self.params)
         input_table = self._get_single_input_table()
-        self._validate_key_columns(input_table.columns, self.params)
+        self._validate_key_columns(input_table.column_names, self.params)
         entities = self._build_entities(input_table.full_path, self.params)
         self._write_entities_to_azure(self.client, table_name, self.params.write_mode, entities)
 
