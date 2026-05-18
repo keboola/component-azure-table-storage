@@ -1,58 +1,49 @@
-Azure Table Storage
+Azure Table Storage Writer
+==========================
+
+Keboola writer component that loads tables into [Azure Table Storage](https://learn.microsoft.com/azure/storage/tables/).
+
+Functionality
 =============
 
-Description
-
-**Table of Contents:**
-
-[TOC]
-
-Functionality Notes
-===================
+- Writes rows from a single input table as entities into a target Azure table.
+- Upsert semantics with two write modes:
+  - `upsert_merge` – keeps existing entity properties not present in the input row.
+  - `upsert_replace` – overwrites the whole entity.
+- Creates the target table if it does not exist.
+- Sync actions:
+  - **Test Connection** – validates the connection string.
+  - **Load tables** – lists existing tables in the storage account.
 
 Prerequisites
 =============
 
-Ensure you have the necessary API token, register the application, etc.
-
-Features
-========
-
-| **Feature**             | **Description**                               |
-|-------------------------|-----------------------------------------------|
-| Generic UI Form         | Dynamic UI form for easy configuration.       |
-| Row-Based Configuration | Allows structuring the configuration in rows. |
-| OAuth                   | OAuth authentication enabled.                 |
-| Incremental Loading     | Fetch data in new increments.                 |
-| Backfill Mode           | Supports seamless backfill setup.             |
-| Date Range Filter       | Specify the date range for data retrieval.    |
-
-Supported Endpoints
-===================
-
-If you need additional endpoints, please submit your request to
-[ideas.keboola.com](https://ideas.keboola.com/).
+An Azure Storage account [connection string](https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage) with permissions to read/write tables.
 
 Configuration
 =============
 
-Param 1
--------
-Details about parameter 1.
+Configuration (account-level)
+-----------------------------
+- **Connection String** (`#connection_string`, required, encrypted) – Azure Storage account connection string.
+- **Debug Mode** (`debug`) – enables verbose logging. Azure SDK HTTP logs are suppressed to avoid leaking auth headers.
 
-Param 2
--------
-Details about parameter 2.
+Row Configuration (per table)
+-----------------------------
+- **Azure Table Name** (`azure_table_name`, required) – target table; pick from existing tables or type a new name.
+- **Partition Key Column** (`partition_key_column`, required) – input column mapped to `PartitionKey`.
+- **Row Key Column** (`row_key_column`, required) – input column mapped to `RowKey`. Must differ from the partition key column.
+- **Write Mode** (`write_mode`) – `upsert_merge` (default) or `upsert_replace`.
 
-Output
-======
+Input
+=====
 
-Provides a list of tables, foreign keys, and schema.
+Exactly one input table mapping per row. If multiple tables are mapped, only the first is processed. The partition and row key columns must exist in the input table.
 
 Development
 -----------
 
-To customize the local data folder path, replace the `CUSTOM_FOLDER` placeholder with your desired path in the `docker-compose.yml` file:
+Customize the local data folder by replacing `CUSTOM_FOLDER` in `docker-compose.yml`:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     volumes:
@@ -60,8 +51,7 @@ To customize the local data folder path, replace the `CUSTOM_FOLDER` placeholder
       - ./CUSTOM_FOLDER:/data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Clone this repository, initialize the workspace, and run the component using the following
-commands:
+Clone and run:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 git clone https://github.com/keboola/component-azure-table-storage component-azure-table-storage
@@ -70,7 +60,7 @@ docker-compose build
 docker-compose run --rm dev
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Run the test suite and perform lint checks using this command:
+Run tests and lint:
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 docker-compose run --rm test
@@ -79,6 +69,4 @@ docker-compose run --rm test
 Integration
 ===========
 
-For details about deployment and integration with Keboola, refer to the
-[deployment section of the developer
-documentation](https://developers.keboola.com/extend/component/deployment/).
+See the [Keboola developer documentation](https://developers.keboola.com/extend/component/deployment/) for deployment details.
