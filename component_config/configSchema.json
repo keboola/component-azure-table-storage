@@ -1,19 +1,35 @@
 {
   "type": "object",
-  "title": "extractor configuration",
+  "title": "Azure Table Storage Writer",
   "required": [
-    "print_hello"
+    "#connection_string"
   ],
   "properties": {
-    "print_hello": {
-      "type": "boolean",
-      "title": "Print Hello",
+    "#connection_string": {
+      "type": "string",
+      "title": "Connection String",
+      "description": "Azure Storage account connection string (will be encrypted).",
+      "format": "password",
       "propertyOrder": 1
+    },
+    "test_connection": {
+      "type": "button",
+      "title": "Test Connection",
+      "format": "test-connection",
+      "propertyOrder": 2,
+      "options": {
+        "async": {
+          "action": "testConnection",
+          "label": "Test Connection"
+        }
+      }
     },
     "debug": {
       "type": "boolean",
-      "title": "Debug",
-      "propertyOrder": 2
+      "title": "Debug Mode",
+      "description": "Enable verbose debug logging.",
+      "default": false,
+      "propertyOrder": 3
     }
   }
 }

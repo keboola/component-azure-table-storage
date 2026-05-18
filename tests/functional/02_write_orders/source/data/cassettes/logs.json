@@ -1,0 +1,18 @@
+{
+  "exit_code": null,
+  "stderr": "",
+  "logs": [
+    {
+      "level": "INFO",
+      "logger": "root",
+      "message": "Processing input table: orders.csv",
+      "timestamp": "2026-05-14T10:55:38.000Z"
+    },
+    {
+      "level": "INFO",
+      "logger": "root",
+      "message": "Written 4 entities to Azure table 'testb'",
+      "timestamp": "2026-05-14T10:55:38.000Z"
+    }
+  ]
+}
